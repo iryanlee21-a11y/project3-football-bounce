@@ -1,4 +1,4 @@
-# 🏈 Rugby Ball Physics Simulation
+# 🏈 FootBall Physics Simulation
 
 **SWCON211 Game Programming Project #3**  
 외부 물리 라이브러리 없이 직접 구현한 **2D 강체 물리 엔진**입니다.  
