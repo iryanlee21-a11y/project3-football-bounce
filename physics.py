@@ -4,6 +4,14 @@ import math
 # 벡터 연산을 위한 단축어
 Vector2 = pygame.math.Vector2
 
+# 감쇠율 (1/s): 1초마다 속도에 exp(-k)를 곱한다.
+# 프레임 속도와 무관하게 같은 감쇠가 일어나도록 시간 기반으로 적용한다.
+# 값은 기존 버전(60 FPS, 서브스텝 8회에서 매 스텝 0.999 / 0.99를 곱하던 방식)과
+# 같은 1초 감쇠가 되도록 맞췄다: 0.999^480 ≈ exp(-0.48), 0.99^480 ≈ exp(-4.82)
+LINEAR_DAMPING = 0.48
+ANGULAR_DAMPING = 4.82
+MAX_FRAME_DT = 1 / 30   # 창 이동 등으로 프레임이 크게 밀렸을 때 한 번에 계산할 최대 시간
+
 class RigidBody2D:
     """
     [Rigid Body Dynamics] 수업 내용 기반
@@ -40,9 +48,9 @@ class RigidBody2D:
         angular_acc = self.torque * self.inv_inertia
         self.angular_vel += angular_acc * dt
 
-        # 감쇠(Damping): 공기 저항 시뮬레이션
-        self.vel *= 0.999 
-        self.angular_vel *= 0.99
+        # 감쇠(Damping): 공기 저항 시뮬레이션 (시간 기반, 프레임 속도와 무관)
+        self.vel *= math.exp(-LINEAR_DAMPING * dt)
+        self.angular_vel *= math.exp(-ANGULAR_DAMPING * dt)
 
         # 위치 및 각도 적분
         self.pos += self.vel * dt
@@ -56,9 +64,10 @@ class PhysicsEngine:
     """
     물리 시뮬레이션을 총괄하는 클래스
     """
-    def __init__(self, gravity=(0, 1200), ground_y=650):
+    def __init__(self, gravity=(0, 1200), ground_y=650, world_width=1280):
         self.gravity = Vector2(gravity)
         self.ground_y = ground_y
+        self.world_width = world_width
         self.bodies = []
         
         # [Collision Response] 파라미터
@@ -75,6 +84,7 @@ class PhysicsEngine:
         """
         전체 물리 월드 업데이트 (서브 스테핑 적용)
         """
+        dt = min(dt, MAX_FRAME_DT)
         sub_dt = dt / self.sub_steps
         for _ in range(self.sub_steps):
             self.step(sub_dt)
@@ -87,9 +97,9 @@ class PhysicsEngine:
             # 2. 지면 충돌 처리 (Collision Response)
             self.resolve_ground_collision(body)
 
-            # 3. 화면 경계 처리 (간단한 텔레포트)
-            if body.pos.x < 0: body.pos.x = 1280 # 화면 너비 하드코딩 방지하려면 파라미터로 받아야 함
-            if body.pos.x > 1280: body.pos.x = 0
+            # 3. 화면 경계 처리 (반대편으로 이동)
+            if body.pos.x < 0: body.pos.x = self.world_width
+            if body.pos.x > self.world_width: body.pos.x = 0
 
     def resolve_ground_collision(self, body):
         """

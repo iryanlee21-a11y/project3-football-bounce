@@ -43,7 +43,7 @@ def main():
     font = pygame.font.SysFont("arial", 20)
 
     # 1. 물리 월드 생성
-    engine = PhysicsEngine(gravity=(0, 1500), ground_y=650)
+    engine = PhysicsEngine(gravity=(0, 1500), ground_y=650, world_width=WINDOW_WIDTH)
 
     # 2. 풋볼 객체 생성 (화면 왼쪽 바닥에 초기화)
     # 초기 위치를 바닥 근처(600)로 설정하여 티(Tee) 위에 있는 느낌
